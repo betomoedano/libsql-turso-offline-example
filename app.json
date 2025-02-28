@@ -11,5 +11,12 @@
         "useLibSQL": true
       }
     ]
-  ]
+  ],
+  "newArchEnabled": true,
+  "ios": {
+    "bundleIdentifier": "com.betoatexpo.my-libsql-app"
+  },
+  "android": {
+    "package": "com.betoatexpo.mylibsqlapp"
+  }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Button,
   ScrollView,
@@ -9,12 +9,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 import {
   SQLiteProvider,
   useSQLiteContext,
   type SQLiteDatabase,
-} from 'expo-sqlite';
+} from "expo-sqlite";
 
 /**
  * The Item type represents a single item in database.
@@ -35,7 +35,7 @@ const libSQLOptions = {
 export default function App() {
   return (
     <SQLiteProvider
-      databaseName="libsql.db"
+      databaseName="offline.db"
       onInit={migrateDbIfNeeded}
       options={{ libSQLOptions }}
     >
@@ -47,7 +47,7 @@ export default function App() {
 
 function Main() {
   const db = useSQLiteContext();
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [todoItems, setTodoItems] = useState<ItemEntity[]>([]);
   const [doneItems, setDoneItems] = useState<ItemEntity[]>([]);
   const [enablePollingSync, setEnablePollingSync] = useState(false);
@@ -57,13 +57,13 @@ function Main() {
       await db.withTransactionAsync(async () => {
         setTodoItems(
           await db.getAllAsync<ItemEntity>(
-            'SELECT * FROM items WHERE done = ?',
+            "SELECT * FROM items WHERE done = ?",
             false
           )
         );
         setDoneItems(
           await db.getAllAsync<ItemEntity>(
-            'SELECT * FROM items WHERE done = ?',
+            "SELECT * FROM items WHERE done = ?",
             true
           )
         );
@@ -99,53 +99,54 @@ function Main() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>libSQL Example</Text>
+      <Text style={styles.heading}>Tasks</Text>
 
       <View style={styles.controlContainer}>
         <View style={styles.controlRow}>
-          <Text>Manual sync</Text>
-          <Button
-            title="Sync"
-            onPress={() => {
-              sync(true /* refetch */);
-            }}
-          />
+          <Text style={styles.controlText}>Manual sync</Text>
+          <TouchableOpacity
+            style={styles.syncButton}
+            onPress={() => sync(true)}
+          >
+            <Text style={styles.syncButtonText}>Sync Now</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.controlRow}>
-          <Text>Auto sync for every 2 seconds</Text>
+          <Text style={styles.controlText}>Auto sync every 2s</Text>
           <Switch
-            onValueChange={(value) => {
-              setEnablePollingSync(value);
-            }}
+            onValueChange={setEnablePollingSync}
             value={enablePollingSync}
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={enablePollingSync ? "#2196F3" : "#f4f3f4"}
           />
         </View>
       </View>
 
-      <View style={styles.flexRow}>
+      <View style={styles.inputContainer}>
         <TextInput
-          onChangeText={(text) => setText(text)}
+          onChangeText={setText}
           onSubmitEditing={async () => {
             await addItemAsync(db, text);
-            await refetchItems();
-            setText('');
+            refetchItems();
+            setText("");
           }}
-          placeholder="what do you need to do?"
+          placeholder="Add a new task..."
+          placeholderTextColor="#666"
           style={styles.input}
           value={text}
         />
       </View>
 
-      <ScrollView style={styles.listArea}>
+      <ScrollView style={styles.listArea} showsVerticalScrollIndicator={false}>
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionHeading}>Todo</Text>
+          <Text style={styles.sectionHeading}>Pending Tasks</Text>
           {todoItems.map((item) => (
             <Item
               key={item.id}
               item={item}
               onPressItem={async (id) => {
                 await updateItemAsDoneAsync(db, id);
-                await refetchItems();
+                refetchItems();
               }}
             />
           ))}
@@ -158,7 +159,7 @@ function Main() {
               item={item}
               onPressItem={async (id) => {
                 await deleteItemAsync(db, id);
-                await refetchItems();
+                refetchItems();
               }}
             />
           ))}
@@ -193,9 +194,9 @@ function Item({
 //#region Database Operations
 
 async function addItemAsync(db: SQLiteDatabase, text: string): Promise<void> {
-  if (text !== '') {
+  if (text !== "") {
     await db.runAsync(
-      'INSERT INTO items (done, value) VALUES (?, ?);',
+      "INSERT INTO items (done, value) VALUES (?, ?);",
       false,
       text
     );
@@ -206,21 +207,21 @@ async function updateItemAsDoneAsync(
   db: SQLiteDatabase,
   id: number
 ): Promise<void> {
-  await db.runAsync('UPDATE items SET done = ? WHERE id = ?;', true, id);
+  await db.runAsync("UPDATE items SET done = ? WHERE id = ?;", true, id);
 }
 
 async function deleteItemAsync(db: SQLiteDatabase, id: number): Promise<void> {
-  await db.runAsync('DELETE FROM items WHERE id = ?;', id);
+  await db.runAsync("DELETE FROM items WHERE id = ?;", id);
 }
 
 async function migrateDbIfNeeded(db: SQLiteDatabase) {
   // Always sync libSQL first to prevent conflicts between local and remote databases
-  await db.syncLibSQL();
+  db.syncLibSQL();
 
   const DATABASE_VERSION = 1;
   let { user_version: currentDbVersion } = await db.getFirstAsync<{
     user_version: number;
-  }>('PRAGMA user_version');
+  }>("PRAGMA user_version");
   if (currentDbVersion >= DATABASE_VERSION) {
     return;
   }
@@ -244,68 +245,111 @@ async function migrateDbIfNeeded(db: SQLiteDatabase) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: "#F5F6FA",
     flex: 1,
     paddingTop: 64,
   },
   heading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#1A1A1A",
+    marginBottom: 20,
   },
   flexRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   controlContainer: {
-    alignItems: 'center',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    marginVertical: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 15,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   controlRow: {
-    alignSelf: 'stretch',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginHorizontal: 64,
-    paddingVertical: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  controlText: {
+    fontSize: 16,
+    color: "#1A1A1A",
+    fontWeight: "500",
+  },
+  syncButton: {
+    backgroundColor: "#2196F3",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  syncButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  inputContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   input: {
-    borderColor: '#4630eb',
-    borderRadius: 4,
-    borderWidth: 1,
-    flex: 1,
-    height: 48,
-    margin: 16,
-    padding: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   listArea: {
-    backgroundColor: '#f0f0f0',
     flex: 1,
-    paddingTop: 16,
+    paddingHorizontal: 16,
   },
   sectionContainer: {
-    marginBottom: 16,
-    marginHorizontal: 16,
+    marginBottom: 24,
   },
   sectionHeading: {
-    fontSize: 18,
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginBottom: 12,
   },
   item: {
-    backgroundColor: '#fff',
-    borderColor: '#000',
-    borderWidth: 1,
-    padding: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
   },
   itemDone: {
-    backgroundColor: '#1c9963',
+    backgroundColor: "#4CAF50",
   },
   itemText: {
-    color: '#000',
+    fontSize: 16,
+    color: "#1A1A1A",
   },
   itemTextDone: {
-    color: '#fff',
+    color: "#FFFFFF",
+    textDecorationLine: "line-through",
   },
 });
 
